@@ -1,6 +1,6 @@
-require 'spec_helper'
-require 'r509/subject'
-require 'openssl'
+require "spec_helper"
+require "r509/subject"
+require "openssl"
 
 describe R509::Subject do
   before :all do
@@ -21,7 +21,7 @@ describe R509::Subject do
     expect(subject.name.to_s).to eq("/CN=domain.com/O=my org")
   end
   it "initializes with a subject hash, and gets the name" do
-    subject = R509::Subject.new(:CN => "domain.com", :O => "my org", :"1.2.3.4.4.5.6.7" => "what")
+    subject = R509::Subject.new(CN: "domain.com", O: "my org", "1.2.3.4.4.5.6.7": "what")
     expect(subject.name.to_s).to eq("/CN=domain.com/O=my org/1.2.3.4.4.5.6.7=what")
   end
   it "initializes with a name, gets the name" do
@@ -38,16 +38,16 @@ describe R509::Subject do
     expect(s2.name.to_s).to eq(s1.name.to_s)
   end
   it "preserves order of a full subject line" do
-    subject = R509::Subject.new([['CN', 'langui.sh'], ['ST', 'Illinois'], ['L', 'Chicago'], ['C', 'US'], ['emailAddress', 'ca@langui.sh']])
-    expect(subject.name.to_s).to eq('/CN=langui.sh/ST=Illinois/L=Chicago/C=US/emailAddress=ca@langui.sh')
+    subject = R509::Subject.new([["CN", "langui.sh"], ["ST", "Illinois"], ["L", "Chicago"], ["C", "US"], ["emailAddress", "ca@langui.sh"]])
+    expect(subject.name.to_s).to eq("/CN=langui.sh/ST=Illinois/L=Chicago/C=US/emailAddress=ca@langui.sh")
   end
   it "preserves order of a full subject line and uses to_s directly" do
-    subject = R509::Subject.new([['CN', 'langui.sh'], ['ST', 'Illinois'], ['L', 'Chicago'], ['C', 'US'], ['emailAddress', 'ca@langui.sh']])
-    expect(subject.to_s).to eq('/CN=langui.sh/ST=Illinois/L=Chicago/C=US/emailAddress=ca@langui.sh')
+    subject = R509::Subject.new([["CN", "langui.sh"], ["ST", "Illinois"], ["L", "Chicago"], ["C", "US"], ["emailAddress", "ca@langui.sh"]])
+    expect(subject.to_s).to eq("/CN=langui.sh/ST=Illinois/L=Chicago/C=US/emailAddress=ca@langui.sh")
   end
   it "preserves order with raw OIDs, and potentially fills in known OID names" do
-    subject = R509::Subject.new([['2.5.4.3', 'common name'], ['2.5.4.15', 'business category'], ['2.5.4.7', 'locality'], ['1.3.6.1.4.1.311.60.2.1.3', 'jurisdiction oid openssl typically does not know']])
-    expect(subject.to_s).to eq("/CN=common name/businessCategory=business category/L=locality/jurisdictionOfIncorporationCountryName=jurisdiction oid openssl typically does not know")
+    subject = R509::Subject.new([["2.5.4.3", "common name"], ["2.5.4.15", "business category"], ["2.5.4.7", "locality"], ["1.3.6.1.4.1.311.60.2.1.3", "jurisdiction oid openssl typically does not know"]])
+    expect(subject.to_s).to eq("/CN=common name/businessCategory=business category/L=locality/jurisdictionC=jurisdiction oid openssl typically does not know")
   end
 
   it "edits an existing subject entry" do
@@ -86,12 +86,12 @@ describe R509::Subject do
 
   it "adds an OID" do
     subject = R509::Subject.new
-    subject['1.3.6.1.4.1.311.60.2.1.3'] = 'jurisdiction oid openssl typically does not know'
-    expect(subject['1.3.6.1.4.1.311.60.2.1.3']).to eq('jurisdiction oid openssl typically does not know')
+    subject["1.3.6.1.4.1.311.60.2.1.3"] = "jurisdiction oid openssl typically does not know"
+    expect(subject["1.3.6.1.4.1.311.60.2.1.3"]).to eq("jurisdiction oid openssl typically does not know")
   end
 
   it "deletes an OID" do
-    subject = R509::Subject.new([["CN", "domain.com"], ['1.3.6.1.4.1.38383.60.2.1.0.0', 'random oid']])
+    subject = R509::Subject.new([["CN", "domain.com"], ["1.3.6.1.4.1.38383.60.2.1.0.0", "random oid"]])
     expect(subject.to_s).to eq("/CN=domain.com/1.3.6.1.4.1.38383.60.2.1.0.0=random oid")
     subject.delete("1.3.6.1.4.1.38383.60.2.1.0.0")
     expect(subject.to_s).to eq("/CN=domain.com")
@@ -107,43 +107,43 @@ describe R509::Subject do
   end
 
   it "parses unknown OIDs out of a CSR" do
-    csr = R509::CSR.new(:csr => @csr_unknown_oid)
+    csr = R509::CSR.new(csr: @csr_unknown_oid)
     subject = R509::Subject.new(csr.subject)
     expect(subject["1.2.3.4.5.6.7.8.9.8.7.6.5.4.3.2.1.0.0"]).to eq("random oid!")
     expect(subject["1.3.3.543.567.32.43.335.1.1.1"]).to eq("another random oid!")
-    expect(subject["CN"]).to eq('normaldomain.com')
+    expect(subject["CN"]).to eq("normaldomain.com")
   end
 
   it "builds a hash" do
-    args = { :CN => "domain.com", :O => "my org", :"1.2.3.4.4.5.6.7" => "what" }
+    args = {CN: "domain.com", O: "my org", "1.2.3.4.4.5.6.7": "what"}
     subject = R509::Subject.new(args)
     expect(subject.to_h).to eq(args)
   end
 
   it "builds yaml" do
-    args = { :CN => "domain.com", :O => "my org", :"1.2.3.4.4.5.6.7" => "what" }
+    args = {CN: "domain.com", O: "my org", "1.2.3.4.4.5.6.7": "what"}
     subject = R509::Subject.new(args)
     expect(YAML.load(subject.to_yaml)).to eq(args)
   end
 
   context "dynamic getter/setter behaviors" do
     it "recognizes getters for a standard subject oid" do
-      subject = R509::Subject.new [['CN', 'testCN']]
-      expect(subject.CN).to eq('testCN')
-      expect(subject.common_name).to eq('testCN')
-      expect(subject.commonName).to eq('testCN')
+      subject = R509::Subject.new [["CN", "testCN"]]
+      expect(subject.CN).to eq("testCN")
+      expect(subject.common_name).to eq("testCN")
+      expect(subject.commonName).to eq("testCN")
     end
 
     it "recognizes setters for a standard subject oid" do
       subject = R509::Subject.new
-      subject.CN = 'testCN'
-      expect(subject.CN).to eq('testCN')
-      subject.common_name = 'testCN2'
-      expect(subject.common_name).to eq('testCN2')
-      subject.commonName = 'testCN3'
-      expect(subject.commonName).to eq('testCN3')
-      expect(subject.CN).to eq('testCN3')
-      expect(subject.common_name).to eq('testCN3')
+      subject.CN = "testCN"
+      expect(subject.CN).to eq("testCN")
+      subject.common_name = "testCN2"
+      expect(subject.common_name).to eq("testCN2")
+      subject.commonName = "testCN3"
+      expect(subject.commonName).to eq("testCN3")
+      expect(subject.CN).to eq("testCN3")
+      expect(subject.common_name).to eq("testCN3")
     end
 
     it "returns properly for respond_to? with a standard subject oid" do
@@ -191,9 +191,7 @@ describe R509::Subject do
       expect(subject.respond_to?("i_operating_system")).to eq(true)
       expect(subject.respond_to?("i_operating_system=")).to eq(true)
     end
-
   end
-
 end
 
 describe R509::NameSanitizer do
